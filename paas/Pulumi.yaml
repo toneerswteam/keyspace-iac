@@ -1,0 +1,68 @@
+name: paas
+description: A Pulumi project to deploy an Azure Kubernetes Service (AKS) cluster for PaaS.
+runtime: yaml
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: azure-yaml
+
+resources:
+  # Create an Azure Resource Group
+  resourceGroup:
+    type: azure-native:resources:ResourceGroup
+    properties:
+      resourceGroupName: ${pulumi.stack}-paas
+
+  # Create an Azure resource (Storage Account)
+  sa:
+    type: azure-native:storage:StorageAccount
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      sku:
+        name: Standard_LRS
+      kind: StorageV2
+  identity:
+    type: azure-native:managedidentity:UserAssignedIdentity
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+
+  # Create an AKS Cluster
+  cluster:
+    type: azure-native:containerservice:ManagedCluster
+    properties:
+      resourceName: ${pulumi.stack}-paas
+      resourceGroupName: ${resourceGroup.name}
+      identity:
+        type: UserAssigned
+        userAssignedIdentities:
+          - ${identity.id}
+      kubernetesVersion: 1.31.8
+      dnsPrefix: dns-prefix
+      enableRBAC: true
+      agentPoolProfiles:
+        - name: agentpool
+          mode: System
+          vmSize: Standard_B2als_v2
+          osType: Linux
+          osDiskSizeGB: 30
+          type: VirtualMachineScaleSets
+          enableAutoScaling: true
+          minCount: 1
+          maxCount: 5
+
+variables:
+  adminCredentials:
+    fn::azure-native:containerservice:listManagedClusterAdminCredentials:
+      resourceGroupName: ${resourceGroup.name}
+      resourceName: ${cluster.name}
+  storageAccountKeys:
+    fn::azure-native:storage:listStorageAccountKeys:
+      resourceGroupName: ${resourceGroup.name}
+      accountName: ${sa.name}
+
+outputs:
+  # Export the primary key of the Storage Account
+  kubeconfig:
+    fn::fromBase64: ${adminCredentials.kubeconfigs[0].value}
+  # Export the primary key of the Storage Account
+  primaryStorageKey: ${storageAccountKeys.keys[0].value}

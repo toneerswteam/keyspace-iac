@@ -40,15 +40,30 @@ resources:
       dnsPrefix: dns-prefix
       enableRBAC: true
       agentPoolProfiles:
-        - name: agentpool
+        - name: systempool
           mode: System
-          vmSize: Standard_B2als_v2
+          vmSize: Standard_B4als_v2
           osType: Linux
-          osDiskSizeGB: 30
+          osDiskSizeGB: 128
           type: VirtualMachineScaleSets
           enableAutoScaling: true
           minCount: 1
-          maxCount: 5
+          maxCount: 1
+
+  userpool:
+    type: azure-native:containerservice:AgentPool
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      resourceName: ${cluster.name}
+      agentPoolName: userpool
+      mode: User
+      vmSize: Standard_B4als_v2
+      osType: Linux
+      osDiskSizeGB: 128
+      type: VirtualMachineScaleSets
+      enableAutoScaling: true
+      minCount: 0
+      maxCount: 5
 
 variables:
   adminCredentials:

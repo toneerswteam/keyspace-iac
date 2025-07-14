@@ -65,6 +65,142 @@ resources:
       minCount: 0
       maxCount: 5
 
+  # Azure Automation Account
+  automationAccount:
+    type: azure-native:automation:AutomationAccount
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: keyspace-automation
+      sku:
+        name: Basic
+      identity:
+        type: SystemAssigned
+
+  # PowerShell Runbook for operating Azure services
+  operateAzRunbook:
+    type: azure-native:automation:Runbook
+    properties:
+      automationAccountName: ${automationAccount.name}
+      resourceGroupName: ${resourceGroup.name}
+      runbookName: operate-azure-services
+      runbookType: PowerShell72
+      description: Runbook to operate azure services
+      publishContentLink:
+        uri: https://raw.githubusercontent.com/toneerswteam/keyspace-iac/refs/heads/main/scripts/az-operation.ps1
+  now:
+    type: time:Offset
+    properties:
+      offsetHours: 7
+      # offsetDays: 1
+
+  # Schedule for starting keyspace-dev cluster
+  startDevSchedule:
+    type: azure-native:automation:Schedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      scheduleName: start-keyspace-dev-schedule
+      name: start-keyspace-dev-schedule
+      description: Daily schedule to start keyspace-dev cluster
+      frequency: Week
+      interval: 1
+      advancedSchedule:
+        weekDays: [Monday, Tuesday, Wednesday, Thursday, Friday]
+      startTime: ${now.year}-${now.month}-${now.day}T09:00:00+07:00
+      timeZone: Asia/Bangkok
+  startDevJobSchedule:
+    type: azure-native:automation:JobSchedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      runbook:
+        name: ${operateAzRunbook.name}
+      schedule:
+        name: ${startDevSchedule.name}
+      parameters:
+        command: Start-AzAksCluster -Name keyspace-dev -ResourceGroupName keyspace-dev
+
+  # Schedule for stopping keyspace-dev cluster
+  stopDevSchedule:
+    type: azure-native:automation:Schedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      scheduleName: stop-keyspace-dev-schedule
+      name: stop-keyspace-dev-schedule
+      description: Daily schedule to stop keyspace-dev cluster
+      frequency: Week
+      interval: 1
+      advancedSchedule:
+        weekDays: [Monday, Tuesday, Wednesday, Thursday, Friday]
+      startTime: ${now.year}-${now.month}-${now.day}T19:00:00+07:00
+      timeZone: Asia/Bangkok
+  stopDevJobSchedule:
+    type: azure-native:automation:JobSchedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      runbook:
+        name: ${operateAzRunbook.name}
+      schedule:
+        name: ${stopDevSchedule.name}
+      parameters:
+        command: Stop-AzAksCluster -Name keyspace-dev -ResourceGroupName keyspace-dev
+
+  # Schedule for starting keyspace-qat cluster
+  startQatSchedule:
+    type: azure-native:automation:Schedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      scheduleName: start-keyspace-qat-schedule
+      name: start-keyspace-qat-schedule
+      description: Daily schedule to start keyspace-qat cluster
+      frequency: Week
+      interval: 1
+      advancedSchedule:
+        weekDays: [Monday, Tuesday, Wednesday, Thursday, Friday]
+      startTime: ${now.year}-${now.month}-${now.day}T08:00:00+07:00
+      timeZone: Asia/Bangkok
+  startQatJobSchedule:
+    type: azure-native:automation:JobSchedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      runbook:
+        name: ${operateAzRunbook.name}
+      schedule:
+        name: ${startQatSchedule.name}
+      parameters:
+        command: Start-AzAksCluster -Name keyspace-qat -ResourceGroupName keyspace-qat
+
+  # Schedule for stopping keyspace-qat cluster
+  stopQatSchedule:
+    type: azure-native:automation:Schedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      scheduleName: stop-keyspace-qat-schedule
+      name: stop-keyspace-qat-schedule
+      description: Daily schedule to stop keyspace-qat cluster
+      frequency: Week
+      interval: 1
+      advancedSchedule:
+        weekDays: [Monday, Tuesday, Wednesday, Thursday, Friday]
+      startTime: ${now.year}-${now.month}-${now.day}T22:00:00+07:00
+      timeZone: Asia/Bangkok
+  stopQatJobSchedule:
+    type: azure-native:automation:JobSchedule
+    properties:
+      resourceGroupName: ${resourceGroup.name}
+      automationAccountName: ${automationAccount.name}
+      runbook:
+        name: ${operateAzRunbook.name}
+      schedule:
+        name: ${stopQatSchedule.name}
+      parameters:
+        command: Stop-AzAksCluster -Name keyspace-qat -ResourceGroupName keyspace-qat
+
 variables:
   adminCredentials:
     fn::azure-native:containerservice:listManagedClusterAdminCredentials:

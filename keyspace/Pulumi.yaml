@@ -61,7 +61,7 @@ resources:
       type: VirtualMachineScaleSets
       enableAutoScaling: true
       minCount: 0
-      maxCount: 5
+      maxCount: 10
 
 variables:
   adminCredentials:
